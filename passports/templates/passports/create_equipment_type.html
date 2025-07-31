@@ -1,0 +1,46 @@
+{% extends 'users/home.html' %}
+{% load static %}
+
+{% block title %}Создание типа оборудования{% endblock %}
+
+{% block content %}
+<div class="content">
+    <div class="content-header">
+        <h2>Создание нового типа оборудования</h2>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-section">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="required">Название типа</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                        <div class="error">{{ form.name.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Описание типа</label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <div class="error">{{ form.description.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions" style="margin-top: 20px;">
+            <button type="submit" class="btn btn-save">
+                <i class="fas fa-save"></i> Сохранить тип
+            </button>
+            <a href="{% url 'passports:equipment_type_list' %}" class="btn" style="background: #6c757d;">
+                <i class="fas fa-times"></i> Отмена
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

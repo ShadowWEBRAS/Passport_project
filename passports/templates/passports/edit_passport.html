@@ -1,0 +1,347 @@
+{% extends 'users/home.html' %}
+{% load static %}
+
+{% block title %}Редактирование паспорта оборудования{% endblock %}
+
+{% block extrastyle %}
+<style>
+  /* Стили как в create_passport.html */
+  :root {
+    --primary-color: #4361ee;
+    --secondary-color: #3f37c9;
+    --accent-color: #4895ef;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+    --success-color: #4bb543;
+    --danger-color: #f44336;
+    --warning-color: #ff9800;
+    --border-radius: 8px;
+    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s ease;
+  }
+
+  .content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+  }
+
+  .content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .content-header h2 {
+    color: #1e5799;
+    font-weight: 500;
+  }
+
+  .btn {
+    background-color: #1e5799;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+  }
+
+  .btn:hover {
+    background-color: #0a3d62;
+    transform: translateY(-2px);
+  }
+
+  .equipment-image {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    margin-bottom: 30px;
+    background-color: #f8f9fa;
+    border: 2px dashed #ced4da;
+    border-radius: var(--border-radius);
+    color: #6c757d;
+    cursor: pointer;
+    transition: var(--transition);
+    position: relative;
+    min-height: 200px;
+  }
+
+  .equipment-image:hover {
+    border-color: var(--accent-color);
+    color: var(--accent-color);
+  }
+
+  .equipment-image i {
+    margin-bottom: 10px;
+    font-size: 48px;
+  }
+
+  .equipment-image img {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 5px;
+  }
+
+  .form-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: var(--border-radius);
+  }
+
+  .form-section h3 {
+    color: #1e5799;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+  }
+
+  .form-group {
+    flex: 1;
+    margin-bottom: 15px;
+  }
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #495057;
+  }
+
+  label.required::after {
+    content: " *";
+    color: var(--danger-color);
+  }
+
+  input[type="text"],
+  input[type="date"],
+  select,
+  textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ced4da;
+    border-radius: var(--border-radius);
+    font-size: 16px;
+    transition: var(--transition);
+  }
+
+  input[type="text"]:focus,
+  input[type="date"]:focus,
+  select:focus,
+  textarea:focus {
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+  }
+
+  textarea {
+    min-height: 100px;
+    resize: vertical;
+  }
+
+  select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 1em;
+  }
+
+  .error {
+    color: #dc3545;
+    font-size: 14px;
+    margin-top: 5px;
+  }
+
+  @media (max-width: 768px) {
+    .content-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 15px;
+    }
+
+    .form-row {
+      flex-direction: column;
+      gap: 0;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content">
+  <div class="content-header">
+    <h2>Редактирование паспорта: {{ passport.name }}</h2>
+    <button type="button" class="btn btn-save">
+      <i class="fas fa-save"></i> Сохранить изменения
+    </button>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    <div class="equipment-image" id="image-container">
+      {% if form.photo.value %}
+        <img src="{{ form.photo.value.url }}" alt="Фото оборудования">
+      {% else %}
+        <i class="fas fa-camera"></i>
+        <span>Фото оборудования</span>
+      {% endif %}
+      {{ form.photo }}
+    </div>
+
+    <div class="form-section">
+      <h3>Основная информация</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="required">Наименование оборудования</label>
+          {{ form.name }}
+          {% if form.name.errors %}
+            <div class="error">{{ form.name.errors }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="required">Заводской номер</label>
+          {{ form.serial_number }}
+          {% if form.serial_number.errors %}
+            <div class="error">{{ form.serial_number.errors }}</div>
+          {% endif %}
+        </div>
+        <div class="form-group">
+          <label class="required">Инвентарный номер</label>
+          {{ form.inventory_number }}
+          {% if form.inventory_number.errors %}
+            <div class="error">{{ form.inventory_number.errors }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="required">Дата изготовления</label>
+          {{ form.production_date }}
+          {% if form.production_date.errors %}
+            <div class="error">{{ form.production_date.errors }}</div>
+          {% endif %}
+        </div>
+        <div class="form-group">
+          <label class="required">Дата ввода в эксплуатацию</label>
+          {{ form.commissioning_date }}
+          {% if form.commissioning_date.errors %}
+            <div class="error">{{ form.commissioning_date.errors }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Добавление поля для выбора типа оборудования -->
+    <div class="form-row">
+        <div class="form-group">
+            <label>Тип оборудования</label>
+            {{ form.equipment_type }}
+            {% if form.equipment_type.errors %}
+                <div class="error">{{ form.equipment_type.errors }}</div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="form-group">
+      <label>Описание</label>
+      {{ form.description }}
+      {% if form.description.errors %}
+        <div class="error">{{ form.description.errors }}</div>
+      {% endif %}
+    </div>
+
+    <div class="form-section">
+      <h3>Эксплуатационные данные</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="required">Место установки</label>
+          {{ form.location }}
+          {% if form.location.errors %}
+            <div class="error">{{ form.location.errors }}</div>
+          {% endif %}
+        </div>
+        <div class="form-group">
+          <label>Ответственное лицо</label>
+          {{ form.responsible_person }}
+          {% if form.responsible_person.errors %}
+            <div class="error">{{ form.responsible_person.errors }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Статус оборудования</label>
+          {{ form.status }}
+          {% if form.status.errors %}
+            <div class="error">{{ form.status.errors }}</div>
+          {% endif %}
+        </div>
+        <div class="form-group">
+          <label>Дата последнего ТО</label>
+          {{ form.last_maintenance }}
+          {% if form.last_maintenance.errors %}
+            <div class="error">{{ form.last_maintenance.errors }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработка кнопки сохранения
+    document.querySelector('.btn-save').addEventListener('click', function() {
+        document.querySelector('form').submit();
+    });
+
+    // Обработка загрузки изображения
+    const imageInput = document.querySelector('#id_photo');
+    const imageContainer = document.getElementById('image-container');
+
+    imageInput.addEventListener('change', function(e) {
+        if (this.files && this.files[0]) {
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                imageContainer.innerHTML = `<img src="${e.target.result}" alt="Фото оборудования">`;
+            }
+
+            reader.readAsDataURL(this.files[0]);
+        }
+    });
+
+    // Клик по контейнеру изображения для открытия выбора файла
+    imageContainer.addEventListener('click', function() {
+        imageInput.click();
+    });
+});
+</script>
+{% endblock %}

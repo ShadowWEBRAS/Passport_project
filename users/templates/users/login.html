@@ -1,0 +1,26 @@
+{% extends "users/base.html" %}
+
+{% block title %}Вход{% endblock %}
+
+{% block content %}
+    <h2 class="form-title">Вход в систему</h2>
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label for="id_username" class="form-label">Имя пользователя</label>
+            <input type="text" name="username" class="form-control" id="id_username" required>
+        </div>
+
+        <div class="mb-3">
+            <label for="id_password" class="form-label">Пароль</label>
+            <input type="password" name="password" class="form-control" id="id_password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Войти</button>
+
+        <div class="form-footer">
+            Нет аккаунта? <a href="{% url 'register' %}">Зарегистрироваться</a>
+        </div>
+    </form>
+{% endblock %}

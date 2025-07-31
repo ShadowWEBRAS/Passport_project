@@ -1,0 +1,507 @@
+{% extends 'users/home.html' %}
+{% load static %}
+
+{% block title %}Список паспортов оборудования{% endblock %}
+
+{% block extrastyle %}
+<style>
+  :root {
+    --primary-color: #4361ee;
+    --secondary-color: #3f37c9;
+    --accent-color: #4895ef;
+    --light-color: #f8f9fa;
+    --dark-color: #212529;
+    --success-color: #4bb543;
+    --danger-color: #f44336;
+    --warning-color: #ff9800;
+    --border-radius: 8px;
+    --box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --transition: all 0.3s ease;
+  }
+
+  .content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+  }
+
+  .content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .content-header h2 {
+    color: #1e5799;
+    font-weight: 500;
+  }
+
+  .btn {
+    background-color: #1e5799;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: var(--transition);
+    text-decoration: none;
+  }
+
+  .btn:hover {
+    background-color: #0a3d62;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .search-box {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+  }
+
+  .search-box input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 1px solid #ced4da;
+    border-radius: var(--border-radius);
+    font-size: 16px;
+    transition: var(--transition);
+  }
+
+  .search-box input:focus {
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+  }
+
+  .search-box button {
+    background: #1e5799;
+    color: white;
+    border: none;
+    padding: 0 20px;
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .search-box button:hover {
+    background: #0a3d62;
+    transform: translateY(-2px);
+  }
+
+  .filters {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+  }
+
+  .filter-item {
+    flex: 1;
+    min-width: 200px;
+  }
+
+  .filter-item label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #495057;
+  }
+
+  .filter-item select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ced4da;
+    border-radius: var(--border-radius);
+    font-size: 16px;
+    transition: var(--transition);
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 1em;
+  }
+
+  .filter-item select:focus {
+    border-color: var(--accent-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+  }
+
+  .passport-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+  }
+
+  .passport-table th {
+    background-color: #1e5799;
+    color: white;
+    text-align: left;
+    padding: 15px;
+    font-weight: 500;
+    font-size: 16px;
+  }
+
+  .passport-table td {
+    padding: 15px;
+    border-bottom: 1px solid #e9ecef;
+    color: #495057;
+  }
+
+  .passport-table tr:hover {
+    background-color: #f8f9fa;
+  }
+
+  .status {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .status-in_operation {
+    background-color: #d4edda;
+    color: #155724;
+  }
+
+  .status-repair {
+    background-color: #fff3cd;
+    color: #856404;
+  }
+
+  .status-reserve {
+    background-color: #cce5ff;
+    color: #004085;
+  }
+
+  .status-decommissioned {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+
+  .actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .action-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition);
+    color: white;
+    font-size: 14px;
+  }
+
+  .action-btn.view {
+    background: var(--primary-color);
+  }
+
+  .action-btn.edit {
+    background: var(--warning-color);
+  }
+
+  .action-btn.delete {
+    background: var(--danger-color);
+  }
+
+  .action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 30px;
+  }
+
+  .page-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #e9ecef;
+    color: #495057;
+    margin: 0 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+  }
+
+  .page-btn.active {
+    background: #4361ee;
+    color: white;
+    box-shadow: 0 2px 5px rgba(67, 97, 238, 0.3);
+  }
+
+  .page-btn:hover:not(.active) {
+    background: #ced4da;
+    transform: translateY(-2px);
+  }
+
+  .no-passports {
+    text-align: center;
+    padding: 40px;
+    background: #f8f9fa;
+    border-radius: var(--border-radius);
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.05);
+  }
+
+  .no-passports i {
+    font-size: 64px;
+    margin-bottom: 15px;
+    color: #ced4da;
+  }
+
+  .no-passports h3 {
+    color: #495057;
+    margin-bottom: 10px;
+  }
+
+  .no-passports p {
+    color: #6c757d;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 768px) {
+    .content-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 15px;
+    }
+
+    .filters {
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .passport-table {
+      display: block;
+      overflow-x: auto;
+    }
+
+    .passport-table th,
+    .passport-table td {
+      padding: 12px 10px;
+      font-size: 14px;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content">
+  <div class="content-header">
+    <h2>Список паспортов оборудования</h2>
+    <a href="{% url 'passports:create_passport' %}" class="btn">
+      <i class="fas fa-plus"></i> Создать новый
+    </a>
+  </div>
+
+  <form method="GET" action="{% url 'passports:passport_list' %}" class="search-box">
+    <input type="text" name="q" placeholder="Поиск по названию, номеру или описанию..."
+           value="{{ search_query|default:'' }}">
+    <button type="submit"><i class="fas fa-search"></i></button>
+  </form>
+
+  <div class="filters">
+    <div class="filter-item">
+      <label>Статус оборудования</label>
+      <select id="status-filter">
+        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>Все статусы</option>
+        <option value="in_operation" {% if status_filter == 'in_operation' %}selected{% endif %}>В эксплуатации</option>
+        <option value="repair" {% if status_filter == 'repair' %}selected{% endif %}>В ремонте</option>
+        <option value="reserve" {% if status_filter == 'reserve' %}selected{% endif %}>В резерве</option>
+        <option value="decommissioned" {% if status_filter == 'decommissioned' %}selected{% endif %}>Списано</option>
+      </select>
+    </div>
+
+    <div class="filter-item">
+      <label>Сортировка</label>
+      <select id="sort-select">
+        <option value="newest" {% if sort == 'newest' or not sort %}selected{% endif %}>Сначала новые</option>
+        <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>Сначала старые</option>
+        <option value="name" {% if sort == 'name' %}selected{% endif %}>По наименованию (А-Я)</option>
+      </select>
+    </div>
+  </div>
+
+  {% if page_obj %}
+    <table class="passport-table">
+      <thead>
+        <tr>
+          <th>Наименование</th>
+          <th>Заводской номер</th>
+          <th>Инвентарный номер</th>
+          <th>Дата ввода</th>
+          <th>Статус</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for passport in page_obj %}
+        <tr data-id="{{ passport.id }}">
+          <td>
+            <strong>{{ passport.name }}</strong>
+            <div class="text-muted" style="font-size: 14px; margin-top: 5px;">
+              ID: PS-{{ passport.id|stringformat:"06d" }}
+            </div>
+          </td>
+          <td>{{ passport.serial_number }}</td>
+          <td>{{ passport.inventory_number }}</td>
+          <td>{{ passport.commissioning_date|date:"d.m.Y" }}</td>
+          <td>
+            <span class="status status-{{ passport.status }}">
+              {{ passport.get_status_display }}
+            </span>
+          </td>
+          <td class="actions">
+            <div class="action-btn view" title="Просмотр">
+              <i class="fas fa-eye"></i>
+            </div>
+            {% if request.user == passport.created_by or request.user.is_superuser or request.user.is_staff %}
+            <div class="action-btn edit" title="Редактировать">
+              <i class="fas fa-edit"></i>
+            </div>
+            <div class="action-btn delete" title="Удалить">
+              <i class="fas fa-trash"></i>
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="pagination">
+      {% if page_obj.has_previous %}
+        <a class="page-btn" href="?page=1&status={{ status_filter }}&sort={{ sort }}&q={{ search_query }}">
+          <i class="fas fa-angle-double-left"></i>
+        </a>
+        <a class="page-btn" href="?page={{ page_obj.previous_page_number }}&status={{ status_filter }}&sort={{ sort }}&q={{ search_query }}">
+          <i class="fas fa-chevron-left"></i>
+        </a>
+      {% endif %}
+
+      {% for num in page_obj.paginator.page_range %}
+        {% if page_obj.number == num %}
+          <span class="page-btn active">{{ num }}</span>
+        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+          <a class="page-btn" href="?page={{ num }}&status={{ status_filter }}&sort={{ sort }}&q={{ search_query }}">{{ num }}</a>
+        {% endif %}
+      {% endfor %}
+
+      {% if page_obj.has_next %}
+        <a class="page-btn" href="?page={{ page_obj.next_page_number }}&status={{ status_filter }}&sort={{ sort }}&q={{ search_query }}">
+          <i class="fas fa-chevron-right"></i>
+        </a>
+        <a class="page-btn" href="?page={{ page_obj.paginator.num_pages }}&status={{ status_filter }}&sort={{ sort }}&q={{ search_query }}">
+          <i class="fas fa-angle-double-right"></i>
+        </a>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="no-passports">
+      <i class="fas fa-inbox"></i>
+      <h3>Паспорта оборудования не найдены</h3>
+      <p>Начните с создания нового паспорта оборудования</p>
+      <a href="{% url 'passports:create_passport' %}" class="btn" style="margin-top: 20px;">
+        <i class="fas fa-plus"></i> Создать паспорт
+      </a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработка кнопок в списке паспортов
+    document.querySelectorAll('.action-btn.view').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const passportId = this.closest('tr').dataset.id;
+            window.location.href = `/passports/view/${passportId}/`;
+        });
+    });
+
+    document.querySelectorAll('.action-btn.edit').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const passportId = this.closest('tr').dataset.id;
+            window.location.href = `/passports/edit/${passportId}/`;
+        });
+    });
+
+    document.querySelectorAll('.action-btn.delete').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const passportId = this.closest('tr').dataset.id;
+            if (confirm('Вы уверены, что хотите удалить этот паспорт?')) {
+                fetch(`/passports/delete/${passportId}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (response.status === 403) {
+                        alert('У вас нет прав для удаления этого паспорта');
+                    } else if (response.ok) {
+                        location.reload();
+                    } else {
+                        alert('Ошибка при удалении паспорта');
+                    }
+                });
+            }
+        });
+    });
+
+    // Обработка фильтров
+    document.getElementById('status-filter').addEventListener('change', function() {
+        updateUrlParams();
+    });
+
+    document.getElementById('sort-select').addEventListener('change', function() {
+        updateUrlParams();
+    });
+
+    function updateUrlParams() {
+        const status = document.getElementById('status-filter').value;
+        const sort = document.getElementById('sort-select').value;
+        const search = "{{ search_query|default:'' }}";
+
+        const params = new URLSearchParams();
+        if (status !== 'all') params.append('status', status);
+        if (sort !== 'newest') params.append('sort', sort);
+        if (search) params.append('q', search);
+
+        window.location.href = `?${params.toString()}`;
+    }
+});
+</script>
+{% endblock %}

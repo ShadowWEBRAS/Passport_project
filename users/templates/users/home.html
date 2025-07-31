@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Газпром ЦПС - Паспорта оборудования{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a3d62, #1e5799);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+            background: #1e5799;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 30px;
+            font-weight: bold;
+        }
+
+        .header-text h1 {
+            color: #1e5799;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header-text p {
+            color: #555;
+            font-size: 16px;
+        }
+
+        .user-info {
+            text-align: right;
+            font-size: 14px;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .user-info strong {
+            color: #1e5799;
+        }
+
+        .main-content {
+            display: flex;
+            gap: 25px;
+        }
+
+        .sidebar {
+            flex: 0 0 250px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar h2 {
+            color: #1e5799;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #1e5799;
+        }
+
+        .nav-menu {
+            list-style: none;
+        }
+
+        .nav-menu li {
+            margin-bottom: 10px;
+        }
+
+        .nav-menu a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 15px;
+            color: #333;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+
+        .nav-menu a:hover, .nav-menu a.active {
+            background: #1e5799;
+            color: white;
+        }
+
+        .content {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn {
+            background: #1e5799;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: #0a3d62;
+        }
+
+        .auth-container {
+            display: flex;
+            align-items: flex-start;
+            gap: 25px;
+            width: 100%;
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 15px;
+            margin-left: auto;
+        }
+
+        .messages {
+            margin-bottom: 20px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.7);
+            margin-top: 30px;
+            padding: 20px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                flex: 0 0 auto;
+            }
+
+            header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .user-info {
+                text-align: center;
+                margin-top: 15px;
+            }
+
+            .auth-container {
+                flex-direction: column;
+            }
+
+            .auth-buttons {
+                margin-left: 0;
+                justify-content: center;
+                width: 100%;
+                margin-top: 15px;
+            }
+        }
+    </style>
+    {% block extrastyle %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-section">
+                <div class="logo">ГП</div>
+                <div class="header-text">
+                    <h1>Газпром ЦПС - Паспорта оборудования</h1>
+                    <p>Система создания и управления паспортами технологического оборудования</p>
+                </div>
+            </div>
+            {% if user.is_authenticated %}
+            <div class="user-info">
+                <p>Вы вошли как: <strong>{{ user.get_full_name|default:user.username }}</strong></p>
+                <p>Дата: <strong id="current-date"></strong></p>
+                <p>Ваш статус: <strong>{% if user.is_superuser %}Администратор{% else %}Пользователь{% endif %}</strong></p>
+            </div>
+            {% endif %}
+        </header>
+
+        <div class="main-content">
+            <div class="auth-container">
+                <aside class="sidebar">
+                    <h2>Меню</h2>
+                    <ul class="nav-menu">
+                        {% if user.is_authenticated %}
+                            <li><a href="{% url 'home' %}" class="{% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+                                <i class="fas fa-home"></i> Главная
+                            </a></li>
+                            <li><a href="{% url 'passports:create_passport' %}" class="{% if request.resolver_match.url_name == 'create_passport' %}active{% endif %}">
+                                <i class="fas fa-plus-circle"></i> Создать паспорт
+                            </a></li>
+                            <li><a href="{% url 'passports:passport_list' %}" class="{% if request.resolver_match.url_name == 'passport_list' %}active{% endif %}">
+                                <i class="fas fa-list"></i> Список паспортов
+                            </a></li>
+                            <li><a href="{% url 'passports:search' %}" class="{% if request.resolver_match.url_name == 'search' %}active{% endif %}">
+                                <i class="fas fa-search"></i> Поиск оборудования
+                            </a></li>
+                            <li><a href="{% url 'logout' %}">
+                                <i class="fas fa-sign-out-alt"></i> Выход
+                            </a></li>
+                        {% else %}
+                            <li><a href="{% url 'login' %}" class="{% if request.resolver_match.url_name == 'login' %}active{% endif %}">
+                                <i class="fas fa-sign-in-alt"></i> Вход
+                            </a></li>
+                            <li><a href="{% url 'register' %}" class="{% if request.resolver_match.url_name == 'register' %}active{% endif %}">
+                                <i class="fas fa-user-plus"></i> Регистрация
+                            </a></li>
+                        {% endif %}
+                    </ul>
+                </aside>
+
+                <div class="content">
+                    {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }}">
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% block content %}
+                    <div style="margin-bottom: 30px;">
+                        <h2 style="color: #1e5799; margin-bottom: 15px;">О системе</h2>
+                        <p style="line-height: 1.6; margin-bottom: 15px;">
+                            Наша система предназначена для централизованного хранения и управления паспортами технологического оборудования.
+                            Она позволяет:
+                        </p>
+                        <ul style="margin-left: 20px; line-height: 1.6; margin-bottom: 15px;">
+                            <li>Быстро находить информацию о любом оборудовании</li>
+                            <li>Создавать и редактировать электронные паспорта</li>
+                            <li>Отслеживать технические характеристики и историю обслуживания</li>
+                            <li>Генерировать отчеты по оборудованию</li>
+                        </ul>
+                        <p style="line-height: 1.6;">
+                            Система разработана специально для нужд Газпром ЦПС и соответствует всем требованиям
+                            промышленной безопасности и стандартам компании. Использование данной системы позволяет
+                            оптимизировать процессы учета оборудования и повысить эффективность работы технических служб.
+                        </p>
+                    </div>
+                    {% endblock %}
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>© {% now "Y" %} Газпром ЦПС. Система управления паспортами оборудования</p>
+            <p>Версия 1.0.0 | Для внутреннего использования</p>
+        </footer>
+    </div>
+
+    <script>
+        // Отображение текущей даты
+        document.getElementById('current-date').textContent = new Date().toLocaleDateString('ru-RU');
+
+        // Автоматическое скрытие сообщений через 5 секунд
+        setTimeout(function() {
+            var messages = document.querySelectorAll('.alert');
+            messages.forEach(function(message) {
+                message.style.display = 'none';
+            });
+        }, 5000);
+    </script>
+
+    {% block scripts %}
+    {% endblock %}
+</body>
+</html>

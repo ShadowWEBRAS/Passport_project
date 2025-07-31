@@ -1,0 +1,221 @@
+{% extends 'users/home.html' %}
+{% load static %}
+
+{% block title %}{{ passport.name }} - Просмотр паспорта{% endblock %}
+
+{% block extrastyle %}
+<style>
+  .content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+
+  .content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .passport-details {
+    background: white;
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+  }
+
+  .detail-row {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #f0f0f0;
+    padding-bottom: 15px;
+  }
+
+  .detail-label {
+    flex: 0 0 250px;
+    font-weight: 500;
+    color: #495057;
+  }
+
+  .detail-value {
+    flex: 1;
+    color: #212529;
+  }
+
+  .photo-container {
+    text-align: center;
+    margin: 30px 0;
+  }
+
+  .photo-container img {
+    max-width: 100%;
+    max-height: 500px;
+    border-radius: 8px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .status-in_operation {
+    background-color: #d4edda;
+    color: #155724;
+  }
+
+  .status-repair {
+    background-color: #fff3cd;
+    color: #856404;
+  }
+
+  .status-reserve {
+    background-color: #cce5ff;
+    color: #004085;
+  }
+
+  .status-decommissioned {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+  }
+
+  .btn-primary {
+    background: #1e5799;
+    color: white;
+    border: none;
+  }
+
+  .btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content">
+  <div class="content-header">
+    <h2>{{ passport.name }}</h2>
+    <div>
+      {% if request.user == passport.created_by or request.user.is_superuser or request.user.is_staff %}
+      <a href="{% url 'passports:edit_passport' passport.pk %}" class="btn btn-primary">
+        <i class="fas fa-edit"></i> Редактировать
+      </a>
+      {% endif %}
+      <a href="{% url 'passports:passport_list' %}" class="btn btn-secondary">
+        <i class="fas fa-list"></i> К списку
+      </a>
+    </div>
+  </div>
+
+  <div class="passport-details">
+    <div class="photo-container">
+      {% if passport.photo %}
+        <img src="{{ passport.photo.url }}" alt="{{ passport.name }}">
+      {% else %}
+        <div style="padding: 40px; background: #f8f9fa; border-radius: 8px;">
+          <i class="fas fa-image fa-3x" style="color: #ced4da;"></i>
+          <p style="margin-top: 15px;">Фото оборудования отсутствует</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Заводской номер:</div>
+      <div class="detail-value">{{ passport.serial_number }}</div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Инвентарный номер:</div>
+      <div class="detail-value">{{ passport.inventory_number }}</div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Дата изготовления:</div>
+      <div class="detail-value">{{ passport.production_date|date:"d.m.Y" }}</div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Дата ввода в эксплуатацию:</div>
+      <div class="detail-value">{{ passport.commissioning_date|date:"d.m.Y" }}</div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Описание:</div>
+      <div class="detail-value">{{ passport.description|linebreaks }}</div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Место установки:</div>
+      <div class="detail-value">{{ passport.location }}</div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Ответственное лицо:</div>
+      <div class="detail-value">{{ passport.responsible_person|default:"Не указано" }}</div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Статус:</div>
+      <div class="detail-value">
+        <span class="status-badge status-{{ passport.status }}">
+          {{ passport.get_status_display }}
+        </span>
+      </div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Дата последнего ТО:</div>
+      <div class="detail-value">
+        {% if passport.last_maintenance %}
+          {{ passport.last_maintenance|date:"d.m.Y" }}
+        {% else %}
+          Не указано
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Тип оборудования:</div>
+      <div class="detail-value">
+        {% if passport.equipment_type %}
+          {{ passport.equipment_type.name }}
+        {% else %}
+          Не указан
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Создано:</div>
+      <div class="detail-value">
+        {{ passport.created_by.username }} ({{ passport.created_at|date:"d.m.Y H:i" }})
+      </div>
+    </div>
+
+    <div class="detail-row">
+      <div class="detail-label">Последнее обновление:</div>
+      <div class="detail-value">{{ passport.updated_at|date:"d.m.Y H:i" }}</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

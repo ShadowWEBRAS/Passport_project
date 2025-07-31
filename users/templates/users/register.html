@@ -1,0 +1,40 @@
+{% extends 'users/base.html' %}
+
+{% block title %}Регистрация{% endblock %}
+
+{% block content %}
+    <h2 class="form-title">Регистрация</h2>
+    <form method="post">
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label for="id_username" class="form-label">Имя пользователя</label>
+            <input type="text" name="username" class="form-control" id="id_username" required>
+            {% if form.username.errors %}
+                <div class="text-danger mt-1">{{ form.username.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_password1" class="form-label">Пароль</label>
+            <input type="password" name="password1" class="form-control" id="id_password1" required>
+            {% if form.password1.errors %}
+                <div class="text-danger mt-1">{{ form.password1.errors }}</div>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label for="id_password2" class="form-label">Подтвердите пароль</label>
+            <input type="password" name="password2" class="form-control" id="id_password2" required>
+            {% if form.password2.errors %}
+                <div class="text-danger mt-1">{{ form.password2.errors }}</div>
+            {% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary w-100">Зарегистрироваться</button>
+
+        <div class="form-footer">
+            Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a>
+        </div>
+    </form>
+{% endblock %}
