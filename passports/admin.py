@@ -9,7 +9,7 @@ class EquipmentTypeAdmin(admin.ModelAdmin):
 
 @admin.register(EquipmentPassport)
 class EquipmentPassportAdmin(admin.ModelAdmin):
-    list_display = ('name', 'equipment_type', 'serial_number', 'inventory_number', 'created_by', 'status', 'created_at')
-    list_filter = ('status', 'created_at', 'created_by', 'equipment_type')
+    list_display = ('name', 'serial_number', 'inventory_number', 'created_by', 'status', 'created_at')
+    list_filter = ('status', 'created_at', 'created_by')
     search_fields = ('name', 'serial_number', 'inventory_number')
     date_hierarchy = 'created_at'

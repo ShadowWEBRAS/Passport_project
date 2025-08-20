@@ -289,18 +289,6 @@
         <input type="text" name="inventory_number" placeholder="Введите инвентарный номер" value="{{ request.GET.inventory_number }}">
       </div>
 
-      <div class="form-group">
-        <label>Тип оборудования</label>
-        <select name="type">
-          <option value="">Все типы</option>
-          {% for type in equipment_types %}
-          <option value="{{ type.id }}" 
-            {% if request.GET.type == type.id|stringformat:"s" %}selected{% endif %}>
-            {{ type.name }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
 
       <div class="form-group">
         <label>Статус оборудования</label>

@@ -18,13 +18,6 @@ class EquipmentPassport(models.Model):
         ('decommissioned', 'Списано'),
     ]
 
-    equipment_type = models.ForeignKey(
-        EquipmentType,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        verbose_name='Тип оборудования'
-    )
     name = models.CharField('Наименование', max_length=255)
     serial_number = models.CharField('Заводской номер', max_length=100)
     inventory_number = models.CharField('Инвентарный номер', max_length=100)

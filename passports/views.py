@@ -4,8 +4,8 @@ from django.contrib import messages
 from django.http import JsonResponse, HttpResponseForbidden
 from django.db import models
 from django.core.paginator import Paginator
-from .models import EquipmentPassport, EquipmentType
-from .forms import PassportForm, EquipmentTypeForm
+from .models import EquipmentPassport
+from .forms import PassportForm
 
 
 @login_required
@@ -70,7 +70,6 @@ def passport_search(request):
     name = request.GET.get('name', '')
     serial_number = request.GET.get('serial_number', '')
     inventory_number = request.GET.get('inventory_number', '')
-    equipment_type = request.GET.get('type', '')
     commissioning_date = request.GET.get('commissioning_date', '')
     location = request.GET.get('location', '')
     keywords = request.GET.get('keywords', '')
@@ -87,8 +86,6 @@ def passport_search(request):
         passports = passports.filter(serial_number__icontains=serial_number)
     if inventory_number:
         passports = passports.filter(inventory_number__icontains=inventory_number)
-    if equipment_type:
-        passports = passports.filter(equipment_type_id=equipment_type)
     if commissioning_date:
         passports = passports.filter(commissioning_date=commissioning_date)
     if location:
@@ -157,24 +154,3 @@ def delete_passport(request, pk):
         return JsonResponse({'status': 'success'})
 
     return JsonResponse({'status': 'error'}, status=400)
-
-
-@login_required
-def create_equipment_type(request):
-    if request.method == 'POST':
-        form = EquipmentTypeForm(request.POST)
-        if form.is_valid():
-            equipment_type = form.save(commit=False)
-            equipment_type.created_by = request.user
-            equipment_type.save()
-            messages.success(request, 'Тип оборудования успешно создан!')
-            return redirect('passports:equipment_type_list')
-    else:
-        form = EquipmentTypeForm()
-    return render(request, 'passports/create_equipment_type.html', {'form': form})
-
-
-@login_required
-def equipment_type_list(request):
-    types = EquipmentType.objects.all()
-    return render(request, 'passports/equipment_type_list.html', {'types': types})

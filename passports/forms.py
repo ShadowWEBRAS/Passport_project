@@ -5,9 +5,6 @@ class PassportForm(forms.ModelForm):
     class Meta:
         model = EquipmentPassport
         fields = [
-            'equipment_type',
-            'name',
-            'serial_number',
             'inventory_number',
             'production_date',
             'commissioning_date',
