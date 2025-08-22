@@ -154,34 +154,41 @@ def edit_passport(request, pk):
     if request.method == 'POST':
         form = PassportForm(request.POST, request.FILES, instance=passport)
         if form.is_valid():
-            old_data = {field: getattr(passport, field) for field in form.changed_data}
+            # Передаем пользователя в форму для создания типа оборудования
+            passport = form.save(commit=False)
 
-            passport = form.save()
+            # Обрабатываем тип оборудования
+            equipment_type_name = request.POST.get('equipment_type_name')
+            if equipment_type_name:
+                equipment_type, created = EquipmentType.objects.get_or_create(
+                    name=equipment_type_name,
+                    defaults={'created_by': request.user}
+                )
+                passport.equipment_type = equipment_type
 
-            # Обновляем пользовательские поля
-            custom_fields = passport.custom_fields.copy()
-            for key, value in request.POST.items():
-                if key.startswith('custom_'):
-                    field_name = key.replace('custom_', '')
-                    custom_fields[field_name] = value
-
-            passport.custom_fields = custom_fields
             passport.save()
 
             # Сохраняем изменения в файл
             save_passport_to_file(passport)
 
-            # Добавляем запись в историю
-            add_passport_history_entry(passport, request.user, form.changed_data)
-
             messages.success(request, 'Паспорт успешно обновлен!')
             return redirect('passports:view_passport', pk=pk)
+        else:
+            print("Form errors:", form.errors)
+            messages.error(request, 'Ошибка при сохранении. Проверьте данные.')
     else:
         form = PassportForm(instance=passport)
+        # Устанавливаем начальное значение для поля типа оборудования
+        if passport.equipment_type:
+            form.fields['equipment_type_name'].initial = passport.equipment_type.name
+
+    # Получаем все типы оборудования для автодополнения
+    equipment_types = EquipmentType.objects.all()
 
     return render(request, 'passports/edit_passport.html', {
         'form': form,
         'passport': passport,
+        'equipment_types': equipment_types,
         'custom_field_form': CustomFieldForm()
     })
 
