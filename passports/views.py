@@ -24,22 +24,14 @@ def create_passport(request):
         if form.is_valid():
             passport = form.save(commit=False)
             passport.created_by = request.user
-
-            # Обработка пользовательских полей
-            custom_fields = {}
-            for key, value in request.POST.items():
-                if key.startswith('custom_'):
-                    field_name = key.replace('custom_', '')
-                    custom_fields[field_name] = value
-
-            passport.custom_fields = custom_fields
             passport.save()
 
-            # Сохраняем в файл
             save_passport_to_file(passport)
-
             messages.success(request, 'Паспорт успешно создан!')
             return redirect('passports:view_passport', pk=passport.pk)
+        else:
+            # Добавьте отладочную информацию
+            print("Form errors:", form.errors)
     else:
         form = PassportForm()
 
@@ -47,7 +39,6 @@ def create_passport(request):
         'form': form,
         'custom_field_form': CustomFieldForm()
     })
-
 
 @login_required
 def passport_list(request):

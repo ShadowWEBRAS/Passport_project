@@ -190,12 +190,12 @@
 <div class="content">
   <div class="content-header">
     <h2>Создание нового паспорта оборудования</h2>
-    <button type="button" class="btn btn-save">
+    <button type="submit" form="passportForm" class="btn btn-save">
       <i class="fas fa-save"></i> Сохранить паспорт
     </button>
   </div>
 
-  <form method="post" enctype="multipart/form-data">
+  <form method="post" enctype="multipart/form-data" id="passportForm">
     {% csrf_token %}
 
     <div class="equipment-image" id="image-container">
