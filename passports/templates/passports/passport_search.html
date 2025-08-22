@@ -289,7 +289,6 @@
         <input type="text" name="inventory_number" placeholder="Введите инвентарный номер" value="{{ request.GET.inventory_number }}">
       </div>
 
-
       <div class="form-group">
         <label>Статус оборудования</label>
         <select name="status">
@@ -341,6 +340,19 @@
           <div class="equipment-id">ID: PS-{{ passport.id|stringformat:"06d" }}</div>
         </div>
 
+        <div class="equipment-meta">
+          <div class="meta-item">
+            <i class="fas fa-hashtag"></i>
+            <span>Заводской номер: {{ passport.serial_number }}</span>
+          </div>
+          <div class="meta-item">
+            <i class="fas fa-barcode"></i>
+            <span>Инвентарный номер: {{ passport.inventory_number }}</span>
+          </div>
+          <div class="meta-item">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Дата ввода: {{ passport.commissioning_date|date:"d.m.Y" }}</span>
+          </div>
           {% if passport.equipment_type %}
           <div class="meta-item">
             <i class="fas fa-tag"></i>
@@ -391,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.view-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const passportId = this.dataset.id;
-            window.location.href = "{% url 'passports:view_passport' 0 %}".replace('0', passportId);
+            window.location.href = `/passports/view/${passportId}/`;
         });
     });
 
