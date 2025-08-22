@@ -17,9 +17,18 @@ class PassportForm(forms.ModelForm):
             'status', 'last_maintenance', 'photo'
         ]
         widgets = {
-            'production_date': forms.DateInput(attrs={'type': 'date'}),
-            'commissioning_date': forms.DateInput(attrs={'type': 'date'}),
-            'last_maintenance': forms.DateInput(attrs={'type': 'date'}),
+            'production_date': forms.DateInput(
+                attrs={'type': 'date'},
+                format='%Y-%m-%d'  # Добавьте это
+            ),
+            'commissioning_date': forms.DateInput(
+                attrs={'type': 'date'},
+                format='%Y-%m-%d'  # Добавьте это
+            ),
+            'last_maintenance': forms.DateInput(
+                attrs={'type': 'date'},
+                format='%Y-%m-%d'  # Добавьте это
+            ),
             'description': forms.Textarea(attrs={'rows': 4}),
         }
 
@@ -28,23 +37,10 @@ class PassportForm(forms.ModelForm):
         if self.instance and self.instance.equipment_type:
             self.fields['equipment_type_name'].initial = self.instance.equipment_type.name
 
-    def save(self, commit=True):
-        passport = super().save(commit=False)
-
-        equipment_type_name = self.cleaned_data.get('equipment_type_name')
-        if equipment_type_name:
-            equipment_type, created = EquipmentType.objects.get_or_create(
-                name=equipment_type_name,
-                defaults={'created_by': self.initial.get('user')}
-            )
-            passport.equipment_type = equipment_type
-
-        if commit:
-            passport.save()
-            self.save_m2m()
-
-        return passport
-
+        # Убедитесь, что даты отображаются в правильном формате
+        for field_name in ['production_date', 'commissioning_date', 'last_maintenance']:
+            if self.instance and getattr(self.instance, field_name):
+                self.initial[field_name] = getattr(self.instance, field_name).strftime('%Y-%m-%d')
 
 class MaintenanceWorkForm(forms.ModelForm):
     class Meta:
