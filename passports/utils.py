@@ -98,3 +98,12 @@ def add_passport_history_entry(passport_instance, user, changed_fields):
 
     with open(history_file, 'w', encoding='utf-8') as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
+
+
+def get_changed_fields(initial_data, new_data):
+    """Сравнивает начальные и новые данные, возвращает список измененных полей."""
+    changed_fields = []
+    for field in initial_data:
+        if initial_data[field] != new_data.get(field):
+            changed_fields.append(field)
+    return changed_fields

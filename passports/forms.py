@@ -1,6 +1,5 @@
 from django import forms
 from .models import EquipmentPassport, MaintenanceWork, EquipmentType
-import json
 
 
 class PassportForm(forms.ModelForm):
@@ -8,13 +7,6 @@ class PassportForm(forms.ModelForm):
         label='Тип оборудования',
         required=False,
         widget=forms.TextInput(attrs={'list': 'equipment-types'})
-    )
-
-    # Добавим поле для custom fields
-    custom_fields_json = forms.CharField(
-        required=False,
-        widget=forms.HiddenInput(),
-        initial='{}'
     )
 
     class Meta:
@@ -45,14 +37,21 @@ class PassportForm(forms.ModelForm):
         if self.instance and self.instance.equipment_type:
             self.fields['equipment_type_name'].initial = self.instance.equipment_type.name
 
-        # Убедитесь, что даты отображаются в правильном формате
         for field_name in ['production_date', 'commissioning_date', 'last_maintenance']:
             if self.instance and getattr(self.instance, field_name):
                 self.initial[field_name] = getattr(self.instance, field_name).strftime('%Y-%m-%d')
 
-        # Устанавливаем начальное значение для custom fields
-        if self.instance and self.instance.custom_fields:
-            self.fields['custom_fields_json'].initial = json.dumps(self.instance.custom_fields)
+    def clean(self):
+        cleaned_data = super().clean()
+        production_date = cleaned_data.get("production_date")
+        commissioning_date = cleaned_data.get("commissioning_date")
+
+        if production_date and commissioning_date:
+            if commissioning_date < production_date:
+                raise forms.ValidationError(
+                    "Дата ввода в эксплуатацию не может быть раньше даты производства!"
+                )
+        return cleaned_data
 
 
 class MaintenanceWorkForm(forms.ModelForm):

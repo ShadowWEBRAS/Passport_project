@@ -171,6 +171,13 @@
     margin-top: 5px;
   }
 
+  .custom-field {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: var(--border-radius);
+    border: 1px solid #e9ecef;
+  }
+
   @media (max-width: 768px) {
     .content-header {
       flex-direction: column;
@@ -189,7 +196,7 @@
 {% block content %}
 <div class="content">
   <div class="content-header">
-    <h2>Редактирование паспорта: {{ passport.name }}</h2>
+    <h2>Редактирование паспорта оборудования</h2>
     <button type="submit" form="passportForm" class="btn btn-save">
       <i class="fas fa-save"></i> Сохранить изменения
     </button>
@@ -211,7 +218,6 @@
     <div class="form-section">
       <h3>Основная информация</h3>
 
-      <!-- Добавлено поле наименования оборудования -->
       <div class="form-row">
         <div class="form-group">
           <label class="required">Наименование оборудования</label>
@@ -253,19 +259,6 @@
           {% if form.commissioning_date.errors %}
             <div class="error">{{ form.commissioning_date.errors }}</div>
           {% endif %}
-        </div>
-      </div>
-
-      <!-- Добавление поля для выбора типа оборудования -->
-      <div class="form-row">
-        <div class="form-group">
-          <label>Тип оборудования</label>
-          <input type="text" name="equipment_type_name" value="{% if form.equipment_type_name.value %}{{ form.equipment_type_name.value }}{% elif passport.equipment_type %}{{ passport.equipment_type.name }}{% endif %}" list="equipment-types">
-          <datalist id="equipment-types">
-            {% for type in equipment_types %}
-              <option value="{{ type.name }}">
-            {% endfor %}
-          </datalist>
         </div>
       </div>
     </div>
@@ -314,38 +307,80 @@
         </div>
       </div>
     </div>
+
+    <div class="form-section">
+      <h3>Пользовательские поля</h3>
+      <div id="custom-fields-container">
+        <!-- Сюда JavaScript будет добавлять поля -->
+      </div>
+      <button type="button" id="add-custom-field" class="btn" style="margin-top: 15px; background-color: #28a745;">
+        <i class="fas fa-plus"></i> Добавить поле
+      </button>
+    </div>
   </form>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Обработка кнопки сохранения
-    document.querySelector('.btn-save').addEventListener('click', function() {
-        document.querySelector('form').submit();
+  document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('custom-fields-container');
+    const addButton = document.getElementById('add-custom-field');
+    let fieldCount = 0;
+
+    // Функция для добавления нового поля
+    function addCustomField(key = '', value = '') {
+      const fieldId = `custom_field_${fieldCount++}`;
+      const fieldHtml = `
+        <div class="form-row custom-field" id="${fieldId}">
+          <div class="form-group">
+            <label>Название поля</label>
+            <input type="text" name="custom_fields_key[]" value="${key}" placeholder="Введите название поля" required>
+          </div>
+          <div class="form-group">
+            <label>Значение</label>
+            <input type="text" name="custom_fields_value[]" value="${value}" placeholder="Введите значение">
+          </div>
+          <div class="form-group" style="display: flex; align-items: flex-end;">
+            <button type="button" class="btn" style="background-color: #dc3545;" onclick="document.getElementById('${fieldId}').remove()">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', fieldHtml);
+    }
+
+    // Обработчик кнопки добавления поля
+    addButton.addEventListener('click', function() {
+      addCustomField();
     });
 
-    // Обработка загрузки изображения
-    const imageInput = document.querySelector('#id_photo');
-    const imageContainer = document.getElementById('image-container');
+    // Если редактируем существующий паспорт, загружаем его кастомные поля
+    {% if form.instance.custom_fields %}
+      {% for key, value in form.instance.custom_fields.items %}
+        addCustomField("{{ key }}", "{{ value }}");
+      {% endfor %}
+    {% endif %}
+  });
 
-    imageInput.addEventListener('change', function(e) {
-        if (this.files && this.files[0]) {
-            const reader = new FileReader();
+  // Обработка загрузки изображения
+  const imageContainer = document.getElementById('image-container');
+  const fileInput = document.querySelector('input[type="file"]');
 
-            reader.onload = function(e) {
-                imageContainer.innerHTML = `<img src="${e.target.result}" alt="Фото оборудования">`;
-            }
+  imageContainer.addEventListener('click', function() {
+    fileInput.click();
+  });
 
-            reader.readAsDataURL(this.files[0]);
-        }
-    });
-
-    // Клик по контейнеру изображения для открытия выбора файла
-    imageContainer.addEventListener('click', function() {
-        imageInput.click();
-    });
-});
+  fileInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        imageContainer.innerHTML = `<img src="${e.target.result}" alt="Фото оборудования">`;
+      };
+      reader.readAsDataURL(file);
+    }
+  });
 </script>
 {% endblock %}

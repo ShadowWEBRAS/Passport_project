@@ -2,15 +2,23 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.pagination import PageNumberPagination
 from django.shortcuts import get_object_or_404
 from .models import EquipmentPassport, MaintenanceWork
 from .serializers import EquipmentPassportSerializer, MaintenanceWorkSerializer
 from .utils import save_passport_to_file, load_passport_from_file
 
 
+class StandardResultsSetPagination(PageNumberPagination):
+    page_size = 50
+    page_size_query_param = 'page_size'
+    max_page_size = 1000
+
+
 class EquipmentPassportViewSet(viewsets.ModelViewSet):
     queryset = EquipmentPassport.objects.all()
     serializer_class = EquipmentPassportSerializer
+    pagination_class = StandardResultsSetPagination
 
     def get_permissions(self):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
@@ -33,6 +41,7 @@ class EquipmentPassportViewSet(viewsets.ModelViewSet):
         save_passport_to_file(passport)
 
     def perform_destroy(self, instance):
+        from .utils import delete_passport_file
         delete_passport_file(instance.id)
         instance.delete()
 
@@ -67,6 +76,7 @@ class MaintenanceWorkViewSet(viewsets.ModelViewSet):
     queryset = MaintenanceWork.objects.all()
     serializer_class = MaintenanceWorkSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         if self.request.user.is_superuser or self.request.user.is_staff:
