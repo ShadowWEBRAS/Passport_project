@@ -61,39 +61,6 @@
     transform: translateY(-2px);
   }
 
-  .equipment-image {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 30px;
-    margin-bottom: 30px;
-    background-color: #f8f9fa;
-    border: 2px dashed #ced4da;
-    border-radius: var(--border-radius);
-    color: #6c757d;
-    cursor: pointer;
-    transition: var(--transition);
-    position: relative;
-    min-height: 200px;
-  }
-
-  .equipment-image:hover {
-    border-color: var(--accent-color);
-    color: var(--accent-color);
-  }
-
-  .equipment-image i {
-    margin-bottom: 10px;
-    font-size: 48px;
-  }
-
-  .equipment-image img {
-    max-width: 100%;
-    max-height: 300px;
-    border-radius: 5px;
-  }
-
   .form-section {
     margin-bottom: 30px;
     padding: 20px;
@@ -171,13 +138,6 @@
     margin-top: 5px;
   }
 
-  .custom-field {
-    background-color: #fff;
-    padding: 15px;
-    border-radius: var(--border-radius);
-    border: 1px solid #e9ecef;
-  }
-
   @media (max-width: 768px) {
     .content-header {
       flex-direction: column;
@@ -204,16 +164,6 @@
 
   <form method="post" enctype="multipart/form-data" id="passportForm">
     {% csrf_token %}
-
-    <div class="equipment-image" id="image-container">
-      {% if form.photo.value %}
-        <img src="{{ form.photo.value.url }}" alt="Фото оборудования">
-      {% else %}
-        <i class="fas fa-camera"></i>
-        <span>Фото оборудования</span>
-      {% endif %}
-      {{ form.photo }}
-    </div>
 
     <div class="form-section">
       <h3>Основная информация</h3>
@@ -259,6 +209,19 @@
           {% if form.commissioning_date.errors %}
             <div class="error">{{ form.commissioning_date.errors }}</div>
           {% endif %}
+        </div>
+      </div>
+
+      <!-- Добавление поля для выбора типа оборудования -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Тип оборудования</label>
+          <input type="text" name="equipment_type_name" list="equipment-types">
+          <datalist id="equipment-types">
+            {% for type in equipment_types %}
+              <option value="{{ type.name }}">
+            {% endfor %}
+          </datalist>
         </div>
       </div>
     </div>
@@ -308,14 +271,34 @@
       </div>
     </div>
 
+    <!-- Пользовательские поля -->
     <div class="form-section">
       <h3>Пользовательские поля</h3>
+
       <div id="custom-fields-container">
-        <!-- Сюда JavaScript будет добавлять поля -->
+        <!-- Здесь будут добавляться пользовательские поля -->
       </div>
-      <button type="button" id="add-custom-field" class="btn" style="margin-top: 15px; background-color: #28a745;">
-        <i class="fas fa-plus"></i> Добавить поле
-      </button>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Новое поле</label>
+          <input type="text" id="new-field-name" placeholder="Название поля">
+        </div>
+        <div class="form-group">
+          <label>Тип</label>
+          <select id="new-field-type">
+            <option value="text">Текст</option>
+            <option value="number">Число</option>
+            <option value="date">Дата</option>
+            <option value="boolean">Да/Нет</option>
+          </select>
+        </div>
+        <div class="form-group" style="align-self: end;">
+          <button type="button" id="add-field-btn" class="btn btn-primary">Добавить поле</button>
+        </div>
+      </div>
+
+      <input type="hidden" name="custom_fields_json" id="custom-fields-json" value="{}">
     </div>
   </form>
 </div>
@@ -323,64 +306,85 @@
 
 {% block scripts %}
 <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const container = document.getElementById('custom-fields-container');
-    const addButton = document.getElementById('add-custom-field');
-    let fieldCount = 0;
-
-    // Функция для добавления нового поля
-    function addCustomField(key = '', value = '') {
-      const fieldId = `custom_field_${fieldCount++}`;
-      const fieldHtml = `
-        <div class="form-row custom-field" id="${fieldId}">
-          <div class="form-group">
-            <label>Название поля</label>
-            <input type="text" name="custom_fields_key[]" value="${key}" placeholder="Введите название поля" required>
-          </div>
-          <div class="form-group">
-            <label>Значение</label>
-            <input type="text" name="custom_fields_value[]" value="${value}" placeholder="Введите значение">
-          </div>
-          <div class="form-group" style="display: flex; align-items: flex-end;">
-            <button type="button" class="btn" style="background-color: #dc3545;" onclick="document.getElementById('${fieldId}').remove()">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-        </div>
-      `;
-      container.insertAdjacentHTML('beforeend', fieldHtml);
-    }
-
-    // Обработчик кнопки добавления поля
-    addButton.addEventListener('click', function() {
-      addCustomField();
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработка кнопки сохранения
+    document.querySelector('.btn-save').addEventListener('click', function() {
+        document.querySelector('form').submit();
     });
 
-    // Если редактируем существующий паспорт, загружаем его кастомные поля
-    {% if form.instance.custom_fields %}
-      {% for key, value in form.instance.custom_fields.items %}
-        addCustomField("{{ key }}", "{{ value }}");
-      {% endfor %}
-    {% endif %}
-  });
+    // JavaScript для управления custom fields
+    const customFieldsContainer = document.getElementById('custom-fields-container');
+    const customFieldsJson = document.getElementById('custom-fields-json');
 
-  // Обработка загрузки изображения
-  const imageContainer = document.getElementById('image-container');
-  const fileInput = document.querySelector('input[type="file"]');
+    // Функция для обновления JSON
+    function updateCustomFieldsJson() {
+        const fields = {};
+        document.querySelectorAll('.custom-field-row').forEach(row => {
+            const fieldName = row.querySelector('.field-name').value;
+            const fieldValue = row.querySelector('.field-value').value;
+            const fieldType = row.querySelector('.field-type').value;
 
-  imageContainer.addEventListener('click', function() {
-    fileInput.click();
-  });
-
-  fileInput.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        imageContainer.innerHTML = `<img src="${e.target.result}" alt="Фото оборудования">`;
-      };
-      reader.readAsDataURL(file);
+            if (fieldName) {
+                fields[fieldName] = {
+                    value: fieldValue,
+                    type: fieldType
+                };
+            }
+        });
+        customFieldsJson.value = JSON.stringify(fields);
     }
-  });
+
+    // Добавление нового поля
+    document.getElementById('add-field-btn').addEventListener('click', function() {
+        const fieldName = document.getElementById('new-field-name').value;
+        const fieldType = document.getElementById('new-field-type').value;
+
+        if (!fieldName) {
+            alert('Введите название поля');
+            return;
+        }
+
+        const fieldRow = document.createElement('div');
+        fieldRow.className = 'custom-field-row';
+        fieldRow.innerHTML = `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Название поля</label>
+                    <input type="text" name="custom_field_name" value="${fieldName}" class="field-name" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Значение</label>
+                    <input type="text" name="custom_field_value" class="field-value">
+                </div>
+                <div class="form-group">
+                    <label>Тип</label>
+                    <select name="custom_field_type" class="field-type" disabled>
+                        <option value="text" ${fieldType === 'text' ? 'selected' : ''}>Текст</option>
+                        <option value="number" ${fieldType === 'number' ? 'selected' : ''}>Число</option>
+                        <option value="date" ${fieldType === 'date' ? 'selected' : ''}>Дата</option>
+                        <option value="boolean" ${fieldType === 'boolean' ? 'selected' : ''}>Да/Нет</option>
+                    </select>
+                </div>
+                <div class="form-group" style="align-self: end;">
+                    <button type="button" class="btn btn-danger remove-field">Удалить</button>
+                </div>
+            </div>
+        `;
+
+        customFieldsContainer.appendChild(fieldRow);
+        document.getElementById('new-field-name').value = '';
+
+        // Навешиваем обработчик удаления
+        fieldRow.querySelector('.remove-field').addEventListener('click', function() {
+            fieldRow.remove();
+            updateCustomFieldsJson();
+        });
+
+        // Навешиваем обработчик изменения значения
+        fieldRow.querySelector('.field-value').addEventListener('change', updateCustomFieldsJson);
+
+        updateCustomFieldsJson();
+    });
+});
 </script>
 {% endblock %}
