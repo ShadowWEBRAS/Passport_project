@@ -1,0 +1,95 @@
+{% extends 'users/home.html' %}
+
+{% block content %}
+<div class="content">
+    <div class="content-header">
+        <h2>История изменений: {{ passport.name }}</h2>
+        <a href="{% url 'passports:view_passport' passport.pk %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Назад к паспорту
+        </a>
+    </div>
+
+    <div class="history-container">
+        {% for entry in history %}
+        <div class="history-entry">
+            <div class="history-header">
+                <span class="history-user">{{ entry.user }}</span>
+                <span class="history-date">{{ entry.timestamp|date:"d.m.Y H:i" }}</span>
+            </div>
+            <div class="history-changes">
+                {% for field, changes in entry.changed_fields.items %}
+                <div class="change-item">
+                    <strong>{{ field }}</strong>:
+                    {{ changes.old }} → {{ changes.new }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="no-history">
+            <i class="fas fa-history"></i>
+            <p>История изменений отсутствует</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.history-container {
+    margin-top: 20px;
+}
+
+.history-entry {
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.history-user {
+    font-weight: 500;
+    color: #333;
+}
+
+.history-date {
+    color: #666;
+    font-size: 14px;
+}
+
+.history-changes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.change-item {
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border-left: 3px solid #4361ee;
+}
+
+.no-history {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.no-history i {
+    font-size: 48px;
+    margin-bottom: 15px;
+    color: #ccc;
+}
+</style>
+{% endblock %}

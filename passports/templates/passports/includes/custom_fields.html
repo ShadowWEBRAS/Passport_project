@@ -1,0 +1,53 @@
+<div class="form-section">
+    <h3>Пользовательские поля</h3>
+
+    <div id="custom-fields-container">
+        {% for field_name, field_data in form.instance.custom_fields.items %}
+        <div class="custom-field-row" data-field-name="{{ field_name }}">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Название поля</label>
+                    <input type="text" name="custom_field_name" value="{{ field_name }}" class="field-name" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Значение</label>
+                    <input type="text" name="custom_field_value" value="{{ field_data.value }}" class="field-value">
+                </div>
+                <div class="form-group">
+                    <label>Тип</label>
+                    <select name="custom_field_type" class="field-type" disabled>
+                        <option value="text" {% if field_data.type == 'text' %}selected{% endif %}>Текст</option>
+                        <option value="number" {% if field_data.type == 'number' %}selected{% endif %}>Число</option>
+                        <option value="date" {% if field_data.type == 'date' %}selected{% endif %}>Дата</option>
+                        <option value="boolean" {% if field_data.type == 'boolean' %}selected{% endif %}>Да/Нет</option>
+                    </select>
+                </div>
+                <div class="form-group" style="align-self: end;">
+                    <button type="button" class="btn btn-danger remove-field">Удалить</button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="form-row">
+        <div class="form-group">
+            <label>Новое поле</label>
+            <input type="text" id="new-field-name" placeholder="Название поля">
+        </div>
+        <div class="form-group">
+            <label>Тип</label>
+            <select id="new-field-type">
+                <option value="text">Текст</option>
+                <option value="number">Число</option>
+                <option value="date">Дата</option>
+                <option value="boolean">Да/Нет</option>
+            </select>
+        </div>
+        <div class="form-group" style="align-self: end;">
+            <button type="button" id="add-field-btn" class="btn btn-primary">Добавить поле</button>
+        </div>
+    </div>
+
+    <input type="hidden" name="custom_fields_json" id="custom-fields-json" value="{{ form.instance.custom_fields|default:'{}' }}">
+</div>

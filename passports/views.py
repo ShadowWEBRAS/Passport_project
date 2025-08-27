@@ -10,7 +10,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .models import EquipmentPassport, MaintenanceWork, EquipmentType
 from .forms import PassportForm, MaintenanceWorkForm, CustomFieldForm
-from .utils import save_passport_to_file, load_passport_from_file, delete_passport_file, add_passport_history_entry
+from .utils import save_passport_to_file, load_passport_from_file, delete_passport_file, add_passport_history_entry, \
+    get_passport_history
+import json
 
 
 def is_admin(user):
@@ -19,26 +21,47 @@ def is_admin(user):
 
 @login_required
 def create_passport(request):
+    equipment_types = EquipmentType.objects.all()
+
     if request.method == 'POST':
         form = PassportForm(request.POST, request.FILES)
         if form.is_valid():
             passport = form.save(commit=False)
             passport.created_by = request.user
+
+            # Обработка типа оборудования
+            equipment_type_name = request.POST.get('equipment_type_name')
+            if equipment_type_name:
+                equipment_type, created = EquipmentType.objects.get_or_create(
+                    name=equipment_type_name,
+                    defaults={'created_by': request.user}
+                )
+                passport.equipment_type = equipment_type
+
+            # Обработка custom fields
+            custom_fields_json = request.POST.get('custom_fields_json', '{}')
+            try:
+                custom_fields = json.loads(custom_fields_json)
+                passport.custom_fields = custom_fields
+            except json.JSONDecodeError:
+                passport.custom_fields = {}
+
             passport.save()
 
             save_passport_to_file(passport)
             messages.success(request, 'Паспорт успешно создан!')
             return redirect('passports:view_passport', pk=passport.pk)
         else:
-            # Добавьте отладочную информацию
             print("Form errors:", form.errors)
     else:
         form = PassportForm()
 
     return render(request, 'passports/create_passport.html', {
         'form': form,
+        'equipment_types': equipment_types,
         'custom_field_form': CustomFieldForm()
     })
+
 
 @login_required
 def passport_list(request):
@@ -147,14 +170,18 @@ def view_passport(request, pk):
 @login_required
 def edit_passport(request, pk):
     passport = get_object_or_404(EquipmentPassport, pk=pk)
+    equipment_types = EquipmentType.objects.all()
 
     if not (request.user.is_superuser or request.user.is_staff or passport.created_by == request.user):
         return HttpResponseForbidden("У вас нет прав для редактирования этого паспорта")
 
     if request.method == 'POST':
+        old_data = {field: getattr(passport, field) for field in
+                    ['name', 'serial_number', 'inventory_number', 'production_date', 'commissioning_date',
+                     'description', 'location', 'responsible_person', 'status', 'last_maintenance']}
         form = PassportForm(request.POST, request.FILES, instance=passport)
+
         if form.is_valid():
-            # Передаем пользователя в форму для создания типа оборудования
             passport = form.save(commit=False)
 
             # Обрабатываем тип оборудования
@@ -165,6 +192,27 @@ def edit_passport(request, pk):
                     defaults={'created_by': request.user}
                 )
                 passport.equipment_type = equipment_type
+
+            # Обработка custom fields
+            custom_fields_json = request.POST.get('custom_fields_json', '{}')
+            try:
+                custom_fields = json.loads(custom_fields_json)
+                passport.custom_fields = custom_fields
+            except json.JSONDecodeError:
+                passport.custom_fields = {}
+
+            # Определяем измененные поля
+            changed_fields = {}
+            for field in form.changed_data:
+                if field != 'custom_fields_json' and field != 'equipment_type_name':
+                    changed_fields[field] = {
+                        'old': old_data.get(field),
+                        'new': getattr(passport, field)
+                    }
+
+            # Сохраняем историю изменений
+            if changed_fields:
+                add_passport_history_entry(passport, request.user, changed_fields)
 
             passport.save()
 
@@ -181,9 +229,6 @@ def edit_passport(request, pk):
         # Устанавливаем начальное значение для поля типа оборудования
         if passport.equipment_type:
             form.fields['equipment_type_name'].initial = passport.equipment_type.name
-
-    # Получаем все типы оборудования для автодополнения
-    equipment_types = EquipmentType.objects.all()
 
     return render(request, 'passports/edit_passport.html', {
         'form': form,
@@ -259,14 +304,36 @@ def maintenance_work_list(request, pk):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
     if start_date:
-        works = works.filter(work_date__gte=parse_date(start_date))
+        try:
+            works = works.filter(work_date__gte=parse_date(start_date))
+        except (ValueError, TypeError):
+            pass
     if end_date:
-        works = works.filter(work_date__lte=parse_date(end_date))
+        try:
+            works = works.filter(work_date__lte=parse_date(end_date))
+        except (ValueError, TypeError):
+            pass
 
     return render(request, 'passports/work_list.html', {
         'passport': passport,
         'works': works,
-        'work_types': MaintenanceWork.WORK_TYPES
+        'work_types': MaintenanceWork.WORK_TYPES,
+        'current_filters': request.GET.dict()
+    })
+
+
+@login_required
+def passport_history(request, pk):
+    passport = get_object_or_404(EquipmentPassport, pk=pk)
+
+    if not (request.user.is_superuser or request.user.is_staff or passport.created_by == request.user):
+        return HttpResponseForbidden("У вас нет прав для просмотра истории")
+
+    history = get_passport_history(passport.id)
+
+    return render(request, 'passports/passport_history.html', {
+        'passport': passport,
+        'history': history
     })
 
 

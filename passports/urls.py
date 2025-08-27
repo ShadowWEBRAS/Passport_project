@@ -18,5 +18,6 @@ urlpatterns = [
     path('delete/<uuid:pk>/', views.delete_passport, name='delete_passport'),
     path('add-work/<uuid:pk>/', views.add_maintenance_work, name='add_work'),
     path('works/<uuid:pk>/', views.maintenance_work_list, name='work_list'),
+    path('history/<uuid:pk>/', views.passport_history, name='passport_history'),
     path('', include(router.urls)),
 ]

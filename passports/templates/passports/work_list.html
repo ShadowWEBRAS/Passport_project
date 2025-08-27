@@ -1,0 +1,136 @@
+{% extends 'users/home.html' %}
+
+{% block content %}
+<div class="content">
+    <div class="content-header">
+        <h2>Работы по обслуживанию: {{ passport.name }}</h2>
+        <a href="{% url 'passports:view_passport' passport.pk %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Назад
+        </a>
+    </div>
+
+    <!-- Форма фильтрации -->
+    <form method="GET" class="filter-form">
+        <div class="form-row">
+            <div class="form-group">
+                <label>Тип работы</label>
+                <select name="work_type">
+                    <option value="">Все типы</option>
+                    {% for value, label in work_types %}
+                    <option value="{{ value }}" {% if current_filters.work_type == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>С</label>
+                <input type="date" name="start_date" value="{{ current_filters.start_date }}">
+            </div>
+            <div class="form-group">
+                <label>По</label>
+                <input type="date" name="end_date" value="{{ current_filters.end_date }}">
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Применить</button>
+                <a href="?" class="btn btn-secondary">Сбросить</a>
+            </div>
+        </div>
+    </form>
+
+    <!-- Таблица работ -->
+    <table class="passport-table">
+        <thead>
+            <tr>
+                <th>Тип работы</th>
+                <th>Дата</th>
+                <th>Ответственный</th>
+                <th>Стоимость</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for work in works %}
+            <tr>
+                <td>{{ work.get_work_type_display }}</td>
+                <td>{{ work.work_date|date:"d.m.Y" }}</td>
+                <td>{{ work.responsible_person }}</td>
+                <td>{{ work.cost|default:"-" }} ₽</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center">Работ не найдено</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+.filter-form {
+    background: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.filter-form .form-row {
+    display: flex;
+    gap: 15px;
+    align-items: end;
+    flex-wrap: wrap;
+}
+
+.filter-form .form-group {
+    margin-bottom: 0;
+}
+
+.filter-form label {
+    font-weight: 500;
+    margin-bottom: 5px;
+}
+
+.filter-form select,
+.filter-form input[type="date"] {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+}
+
+.filter-form .btn {
+    padding: 8px 16px;
+    font-size: 14px;
+}
+
+.passport-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.passport-table th {
+    background: #1e5799;
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: 500;
+}
+
+.passport-table td {
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.passport-table tr:hover {
+    background: #f8f9fa;
+}
+
+.text-center {
+    text-align: center;
+    color: #666;
+    font-style: italic;
+}
+</style>
+{% endblock %}

@@ -211,7 +211,6 @@
     <div class="form-section">
       <h3>Основная информация</h3>
 
-
       <div class="form-row">
         <div class="form-group">
           <label class="required">Наименование оборудования</label>
@@ -253,6 +252,19 @@
           {% if form.commissioning_date.errors %}
             <div class="error">{{ form.commissioning_date.errors }}</div>
           {% endif %}
+        </div>
+      </div>
+
+      <!-- Добавление поля для выбора типа оборудования -->
+      <div class="form-row">
+        <div class="form-group">
+          <label>Тип оборудования</label>
+          <input type="text" name="equipment_type_name" list="equipment-types">
+          <datalist id="equipment-types">
+            {% for type in equipment_types %}
+              <option value="{{ type.name }}">
+            {% endfor %}
+          </datalist>
         </div>
       </div>
     </div>
@@ -301,6 +313,36 @@
         </div>
       </div>
     </div>
+
+    <!-- Пользовательские поля -->
+    <div class="form-section">
+      <h3>Пользовательские поля</h3>
+
+      <div id="custom-fields-container">
+        <!-- Здесь будут добавляться пользовательские поля -->
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Новое поле</label>
+          <input type="text" id="new-field-name" placeholder="Название поля">
+        </div>
+        <div class="form-group">
+          <label>Тип</label>
+          <select id="new-field-type">
+            <option value="text">Текст</option>
+            <option value="number">Число</option>
+            <option value="date">Дата</option>
+            <option value="boolean">Да/Нет</option>
+          </select>
+        </div>
+        <div class="form-group" style="align-self: end;">
+          <button type="button" id="add-field-btn" class="btn btn-primary">Добавить поле</button>
+        </div>
+      </div>
+
+      <input type="hidden" name="custom_fields_json" id="custom-fields-json" value="{}">
+    </div>
   </form>
 </div>
 {% endblock %}
@@ -343,6 +385,80 @@ document.addEventListener('DOMContentLoaded', function() {
     // Клик по контейнеру изображения для открытия выбора файла
     imageContainer.addEventListener('click', function() {
         imageInput.click();
+    });
+
+    // JavaScript для управления custom fields
+    const customFieldsContainer = document.getElementById('custom-fields-container');
+    const customFieldsJson = document.getElementById('custom-fields-json');
+
+    // Функция для обновления JSON
+    function updateCustomFieldsJson() {
+        const fields = {};
+        document.querySelectorAll('.custom-field-row').forEach(row => {
+            const fieldName = row.querySelector('.field-name').value;
+            const fieldValue = row.querySelector('.field-value').value;
+            const fieldType = row.querySelector('.field-type').value;
+
+            if (fieldName) {
+                fields[fieldName] = {
+                    value: fieldValue,
+                    type: fieldType
+                };
+            }
+        });
+        customFieldsJson.value = JSON.stringify(fields);
+    }
+
+    // Добавление нового поля
+    document.getElementById('add-field-btn').addEventListener('click', function() {
+        const fieldName = document.getElementById('new-field-name').value;
+        const fieldType = document.getElementById('new-field-type').value;
+
+        if (!fieldName) {
+            alert('Введите название поля');
+            return;
+        }
+
+        const fieldRow = document.createElement('div');
+        fieldRow.className = 'custom-field-row';
+        fieldRow.innerHTML = `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Название поля</label>
+                    <input type="text" name="custom_field_name" value="${fieldName}" class="field-name" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Значение</label>
+                    <input type="text" name="custom_field_value" class="field-value">
+                </div>
+                <div class="form-group">
+                    <label>Тип</label>
+                    <select name="custom_field_type" class="field-type" disabled>
+                        <option value="text" ${fieldType === 'text' ? 'selected' : ''}>Текст</option>
+                        <option value="number" ${fieldType === 'number' ? 'selected' : ''}>Число</option>
+                        <option value="date" ${fieldType === 'date' ? 'selected' : ''}>Дата</option>
+                        <option value="boolean" ${fieldType === 'boolean' ? 'selected' : ''}>Да/Нет</option>
+                    </select>
+                </div>
+                <div class="form-group" style="align-self: end;">
+                    <button type="button" class="btn btn-danger remove-field">Удалить</button>
+                </div>
+            </div>
+        `;
+
+        customFieldsContainer.appendChild(fieldRow);
+        document.getElementById('new-field-name').value = '';
+
+        // Навешиваем обработчик удаления
+        fieldRow.querySelector('.remove-field').addEventListener('click', function() {
+            fieldRow.remove();
+            updateCustomFieldsJson();
+        });
+
+        // Навешиваем обработчик изменения значения
+        fieldRow.querySelector('.field-value').addEventListener('change', updateCustomFieldsJson);
+
+        updateCustomFieldsJson();
     });
 });
 </script>
