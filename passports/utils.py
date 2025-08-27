@@ -121,25 +121,6 @@ def get_passport_history(passport_id):
     return []
 
 
-def add_passport_history_entry(passport_instance, user, changed_fields):
-    """Добавляет запись в историю изменений"""
-    history_file = os.path.join(settings.PASSPORTS_DIR, f"{passport_instance.id}_history.json")
-
-    history_entry = {
-        'timestamp': datetime.now().isoformat(),
-        'user': user.username,
-        'changed_fields': changed_fields
-    }
-
-    history = get_passport_history(passport_instance.id)
-    history.append(history_entry)
-
-    # Создаем директорию, если она не существует
-    os.makedirs(os.path.dirname(history_file), exist_ok=True)
-
-    with open(history_file, 'w', encoding='utf-8') as f:
-        json.dump(history, f, ensure_ascii=False, indent=2)
-
 
 def get_changed_fields(initial_data, new_data):
     """Сравнивает начальные и новые данные, возвращает список измененных полей."""
@@ -176,33 +157,30 @@ def cleanup_orphaned_files():
 
     return deleted_count
 
+
 def add_passport_history_entry(passport_instance, user, changed_fields):
     """Добавляет запись в историю изменений"""
     history_file = os.path.join(settings.PASSPORTS_DIR, f"{passport_instance.id}_history.json")
 
-    # Преобразуем объекты date/datetime в строки
-    processed_changed_fields = {}
-    for field, changes in changed_fields.items():
-        processed_changes = {}
-        for key, value in changes.items():
-            if hasattr(value, 'isoformat'):
-                # Если это объект date или datetime, преобразуем в строку
-                processed_changes[key] = value.isoformat()
-            else:
-                processed_changes[key] = value
-        processed_changed_fields[field] = processed_changes
-
     history_entry = {
         'timestamp': datetime.now().isoformat(),
         'user': user.username,
-        'changed_fields': processed_changed_fields
+        'changed_fields': changed_fields
     }
 
-    history = get_passport_history(passport_instance.id)
+    # Загружаем существующую историю
+    history = []
+    if os.path.exists(history_file):
+        try:
+            with open(history_file, 'r', encoding='utf-8') as f:
+                history = json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            history = []
+
+    # Добавляем новую запись
     history.append(history_entry)
 
-    # Создаем директорию, если она не существует
+    # Сохраняем обновленную историю
     os.makedirs(os.path.dirname(history_file), exist_ok=True)
-
     with open(history_file, 'w', encoding='utf-8') as f:
         json.dump(history, f, ensure_ascii=False, indent=2)

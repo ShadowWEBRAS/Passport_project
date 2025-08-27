@@ -150,12 +150,71 @@
     margin-top: 5px;
   }
 
+  .history-container {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .history-entry {
+    background-color: #fff;
+    border-radius: 6px;
+    padding: 15px;
+    margin-bottom: 15px;
+    border: 1px solid #e9ecef;
+  }
+
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #f1f1f1;
+  }
+
+  .history-user {
+    font-weight: 500;
+    color: #1e5799;
+  }
+
+  .history-date {
+    color: #6c757d;
+    font-size: 0.9em;
+  }
+
+  .change-item {
+    margin-bottom: 8px;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    font-size: 0.9em;
+  }
+
+  .change-item strong {
+    color: #495057;
+  }
+
+  .no-history {
+    text-align: center;
+    padding: 30px;
+    color: #6c757d;
+  }
+
+  .no-history i {
+    font-size: 2em;
+    margin-bottom: 10px;
+    display: block;
+  }
+
   @media (max-width: 768px) {
     .passport-details {
       grid-template-columns: 1fr;
     }
 
     .actions {
+      flex-direction: column;
+    }
+
+    .history-header {
       flex-direction: column;
     }
   }
@@ -265,20 +324,28 @@
 
   <div class="detail-section">
     <h3>История изменений</h3>
-    <div class="detail-row">
-      <div class="detail-label">История изменений:</div>
-      <div class="detail-value">
-        {% if file_data and file_data.history %}
-          {% for entry in file_data.history %}
-            <div style="margin-bottom: 10px; padding: 10px; background: #f8f9fa; border-radius: 5px;">
-              <strong>{{ entry.timestamp|date:"d.m.Y H:i" }}</strong> пользователем <strong>{{ entry.user }}</strong><br>
-              Изменены поля: {{ entry.changed_fields|join:", " }}
+    <div class="history-container">
+        {% for entry in history %}
+        <div class="history-entry">
+            <div class="history-header">
+                <span class="history-user">{{ entry.user }}</span>
+                <span class="history-date">{{ entry.timestamp|date:"d.m.Y H:i" }}</span>
             </div>
-          {% endfor %}
-        {% else %}
-          История изменений отсутствует.
-        {% endif %}
-      </div>
+            <div class="history-changes">
+                {% for field, changes in entry.changed_fields.items %}
+                <div class="change-item">
+                    <strong>{{ field }}</strong>:
+                    {{ changes.old }} → {{ changes.new }}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="no-history">
+            <i class="fas fa-history"></i>
+            <p>История изменений отсутствует</p>
+        </div>
+        {% endfor %}
     </div>
   </div>
 </div>

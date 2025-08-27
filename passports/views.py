@@ -153,6 +153,7 @@ def passport_search(request):
 
 
 @login_required
+@login_required
 def view_passport(request, pk):
     passport = get_object_or_404(EquipmentPassport, pk=pk)
 
@@ -162,11 +163,19 @@ def view_passport(request, pk):
     # Загружаем данные из файла
     file_data = load_passport_from_file(passport.id)
 
+    # Загружаем историю
+    history = get_passport_history(passport.id)
+
+    # Отладочная информация
+    print(f"History entries: {len(history)}")
+    for i, entry in enumerate(history):
+        print(f"Entry {i}: {entry}")
+
     return render(request, 'passports/view_passport.html', {
         'passport': passport,
-        'file_data': file_data
+        'file_data': file_data,
+        'history': history  # Добавляем историю в контекст
     })
-
 
 @login_required
 def edit_passport(request, pk):
@@ -176,19 +185,15 @@ def edit_passport(request, pk):
     if not (request.user.is_superuser or request.user.is_staff or passport.created_by == request.user):
         return HttpResponseForbidden("У вас нет прав для редактирования этого паспорта")
 
-    if request.method == 'POST':
-        # Сохраняем старые значения, преобразуя даты в строки для сравнения
-        old_data = {}
-        for field in ['name', 'serial_number', 'inventory_number', 'production_date',
-                      'commissioning_date', 'description', 'location', 'responsible_person',
-                      'status', 'last_maintenance']:
-            value = getattr(passport, field)
-            if hasattr(value, 'isoformat'):
-                # Преобразуем даты в строки для корректного сравнения
-                old_data[field] = value.isoformat() if value else None
-            else:
-                old_data[field] = value
+    # Сохраняем исходные значения до изменений
+    original_values = {}
+    for field in ['name', 'serial_number', 'inventory_number', 'production_date',
+                  'commissioning_date', 'description', 'location', 'responsible_person',
+                  'status', 'last_maintenance']:
+        value = getattr(passport, field)
+        original_values[field] = value
 
+    if request.method == 'POST':
         form = PassportForm(request.POST, request.FILES, instance=passport)
 
         if form.is_valid():
@@ -202,6 +207,8 @@ def edit_passport(request, pk):
                     defaults={'created_by': request.user}
                 )
                 passport.equipment_type = equipment_type
+            else:
+                passport.equipment_type = None
 
             # Обработка custom fields
             custom_fields_json = request.POST.get('custom_fields_json', '{}')
@@ -214,23 +221,24 @@ def edit_passport(request, pk):
             # Определяем измененные поля
             changed_fields = {}
             for field in form.changed_data:
-                if field != 'custom_fields_json' and field != 'equipment_type_name':
+                if field not in ['custom_fields_json', 'equipment_type_name', 'photo']:
+                    old_value = original_values.get(field)
                     new_value = getattr(passport, field)
+
+                    # Преобразуем значения для сравнения
+                    if hasattr(old_value, 'isoformat'):
+                        old_value = old_value.isoformat() if old_value else None
                     if hasattr(new_value, 'isoformat'):
-                        # Преобразуем новые значения дат в строки для сравнения
                         new_value = new_value.isoformat() if new_value else None
 
-                    # Сравниваем строковые представления
-                    old_value_str = old_data.get(field)
-                    new_value_str = str(new_value) if new_value is not None else None
-
-                    if str(old_value_str) != str(new_value_str):
+                    # Сравниваем значения
+                    if str(old_value) != str(new_value):
                         changed_fields[field] = {
-                            'old': old_value_str,
-                            'new': new_value_str
+                            'old': old_value,
+                            'new': new_value
                         }
 
-            # Сохраняем историю изменений
+            # Сохраняем историю изменений, если есть изменения
             if changed_fields:
                 add_passport_history_entry(passport, request.user, changed_fields)
 
@@ -241,20 +249,15 @@ def edit_passport(request, pk):
 
             messages.success(request, 'Паспорт успешно обновлен!')
             return redirect('passports:view_passport', pk=pk)
-        else:
-            print("Form errors:", form.errors)
-            messages.error(request, 'Ошибка при сохранении. Проверьте данные.')
     else:
         form = PassportForm(instance=passport)
-        # Устанавливаем начальное значение для поля типа оборудования
         if passport.equipment_type:
             form.fields['equipment_type_name'].initial = passport.equipment_type.name
 
     return render(request, 'passports/edit_passport.html', {
         'form': form,
         'passport': passport,
-        'equipment_types': equipment_types,
-        'custom_field_form': CustomFieldForm()
+        'equipment_types': equipment_types
     })
 
 
