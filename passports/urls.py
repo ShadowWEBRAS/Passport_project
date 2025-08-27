@@ -16,6 +16,7 @@ urlpatterns = [
     path('view/<uuid:pk>/', views.view_passport, name='view_passport'),
     path('edit/<uuid:pk>/', views.edit_passport, name='edit_passport'),
     path('delete/<uuid:pk>/', views.delete_passport, name='delete_passport'),
+    path('delete-multiple/', views.delete_multiple_passports, name='delete_multiple_passports'),
     path('add-work/<uuid:pk>/', views.add_maintenance_work, name='add_work'),
     path('works/<uuid:pk>/', views.maintenance_work_list, name='work_list'),
     path('history/<uuid:pk>/', views.passport_history, name='passport_history'),

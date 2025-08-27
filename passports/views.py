@@ -11,7 +11,9 @@ from rest_framework.response import Response
 from .models import EquipmentPassport, MaintenanceWork, EquipmentType
 from .forms import PassportForm, MaintenanceWorkForm, CustomFieldForm
 from .utils import save_passport_to_file, load_passport_from_file, delete_passport_file, add_passport_history_entry, \
-    get_changed_fields
+    get_passport_history, delete_multiple_passport_files
+import json
+import uuid
 
 
 def is_admin(user):
@@ -20,22 +22,31 @@ def is_admin(user):
 
 @login_required
 def create_passport(request):
+    equipment_types = EquipmentType.objects.all()
+
     if request.method == 'POST':
         form = PassportForm(request.POST, request.FILES)
         if form.is_valid():
             passport = form.save(commit=False)
             passport.created_by = request.user
 
-            # Обработка пользовательских полей
-            custom_fields = {}
-            keys = request.POST.getlist('custom_fields_key[]')
-            values = request.POST.getlist('custom_fields_value[]')
+            # Обработка типа оборудования
+            equipment_type_name = request.POST.get('equipment_type_name')
+            if equipment_type_name:
+                equipment_type, created = EquipmentType.objects.get_or_create(
+                    name=equipment_type_name,
+                    defaults={'created_by': request.user}
+                )
+                passport.equipment_type = equipment_type
 
-            for key, value in zip(keys, values):
-                if key:  # Only add if key is not empty
-                    custom_fields[key] = value
+            # Обработка custom fields
+            custom_fields_json = request.POST.get('custom_fields_json', '{}')
+            try:
+                custom_fields = json.loads(custom_fields_json)
+                passport.custom_fields = custom_fields
+            except json.JSONDecodeError:
+                passport.custom_fields = {}
 
-            passport.custom_fields = custom_fields
             passport.save()
 
             save_passport_to_file(passport)
@@ -48,6 +59,7 @@ def create_passport(request):
 
     return render(request, 'passports/create_passport.html', {
         'form': form,
+        'equipment_types': equipment_types,
         'custom_field_form': CustomFieldForm()
     })
 
@@ -148,11 +160,7 @@ def view_passport(request, pk):
         return HttpResponseForbidden("У вас нет прав для просмотра этого паспорта")
 
     # Загружаем данные из файла
-    file_data = load_passport_from_file(passport.id) or {}
-
-    # Убедимся, что history всегда существует как список
-    if 'history' not in file_data:
-        file_data['history'] = []
+    file_data = load_passport_from_file(passport.id)
 
     return render(request, 'passports/view_passport.html', {
         'passport': passport,
@@ -163,28 +171,27 @@ def view_passport(request, pk):
 @login_required
 def edit_passport(request, pk):
     passport = get_object_or_404(EquipmentPassport, pk=pk)
+    equipment_types = EquipmentType.objects.all()
 
     if not (request.user.is_superuser or request.user.is_staff or passport.created_by == request.user):
         return HttpResponseForbidden("У вас нет прав для редактирования этого паспорта")
 
     if request.method == 'POST':
-        form = PassportForm(request.POST, request.FILES, instance=passport)
-        if form.is_valid():
-            # Сохраняем начальные данные для сравнения
-            initial_data = {
-                'name': passport.name,
-                'serial_number': passport.serial_number,
-                'inventory_number': passport.inventory_number,
-                'production_date': passport.production_date,
-                'commissioning_date': passport.commissioning_date,
-                'description': passport.description,
-                'location': passport.location,
-                'responsible_person': passport.responsible_person,
-                'status': passport.status,
-                'last_maintenance': passport.last_maintenance,
-            }
+        # Сохраняем старые значения, преобразуя даты в строки для сравнения
+        old_data = {}
+        for field in ['name', 'serial_number', 'inventory_number', 'production_date',
+                      'commissioning_date', 'description', 'location', 'responsible_person',
+                      'status', 'last_maintenance']:
+            value = getattr(passport, field)
+            if hasattr(value, 'isoformat'):
+                # Преобразуем даты в строки для корректного сравнения
+                old_data[field] = value.isoformat() if value else None
+            else:
+                old_data[field] = value
 
-            # Передаем пользователя в форму для создания типа оборудования
+        form = PassportForm(request.POST, request.FILES, instance=passport)
+
+        if form.is_valid():
             passport = form.save(commit=False)
 
             # Обрабатываем тип оборудования
@@ -196,37 +203,38 @@ def edit_passport(request, pk):
                 )
                 passport.equipment_type = equipment_type
 
-            # Обработка пользовательских полей
-            custom_fields = {}
-            keys = request.POST.getlist('custom_fields_key[]')
-            values = request.POST.getlist('custom_fields_value[]')
+            # Обработка custom fields
+            custom_fields_json = request.POST.get('custom_fields_json', '{}')
+            try:
+                custom_fields = json.loads(custom_fields_json)
+                passport.custom_fields = custom_fields
+            except json.JSONDecodeError:
+                passport.custom_fields = {}
 
-            for key, value in zip(keys, values):
-                if key:  # Only add if key is not empty
-                    custom_fields[key] = value
+            # Определяем измененные поля
+            changed_fields = {}
+            for field in form.changed_data:
+                if field != 'custom_fields_json' and field != 'equipment_type_name':
+                    new_value = getattr(passport, field)
+                    if hasattr(new_value, 'isoformat'):
+                        # Преобразуем новые значения дат в строки для сравнения
+                        new_value = new_value.isoformat() if new_value else None
 
-            passport.custom_fields = custom_fields
-            passport.save()
+                    # Сравниваем строковые представления
+                    old_value_str = old_data.get(field)
+                    new_value_str = str(new_value) if new_value is not None else None
 
-            # Получаем измененные поля
-            new_data = {
-                'name': passport.name,
-                'serial_number': passport.serial_number,
-                'inventory_number': passport.inventory_number,
-                'production_date': passport.production_date,
-                'commissioning_date': passport.commissioning_date,
-                'description': passport.description,
-                'location': passport.location,
-                'responsible_person': passport.responsible_person,
-                'status': passport.status,
-                'last_maintenance': passport.last_maintenance,
-            }
+                    if str(old_value_str) != str(new_value_str):
+                        changed_fields[field] = {
+                            'old': old_value_str,
+                            'new': new_value_str
+                        }
 
-            changed_fields = get_changed_fields(initial_data, new_data)
-
-            # Добавляем запись в историю, если были изменения
+            # Сохраняем историю изменений
             if changed_fields:
                 add_passport_history_entry(passport, request.user, changed_fields)
+
+            passport.save()
 
             # Сохраняем изменения в файл
             save_passport_to_file(passport)
@@ -241,9 +249,6 @@ def edit_passport(request, pk):
         # Устанавливаем начальное значение для поля типа оборудования
         if passport.equipment_type:
             form.fields['equipment_type_name'].initial = passport.equipment_type.name
-
-    # Получаем все типы оборудования для автодополнения
-    equipment_types = EquipmentType.objects.all()
 
     return render(request, 'passports/edit_passport.html', {
         'form': form,
@@ -270,6 +275,53 @@ def delete_passport(request, pk):
         return JsonResponse({'status': 'success'})
 
     return JsonResponse({'status': 'error'}, status=400)
+
+
+@login_required
+def delete_multiple_passports(request):
+    """Массовое удаление паспортов через API"""
+    if not (request.user.is_superuser or request.user.is_staff):
+        return JsonResponse({'status': 'forbidden'}, status=403)
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            passport_ids = data.get('passport_ids', [])
+
+            # Валидация UUID
+            valid_ids = []
+            for passport_id in passport_ids:
+                try:
+                    uuid.UUID(passport_id)
+                    valid_ids.append(passport_id)
+                except ValueError:
+                    pass
+
+            if not valid_ids:
+                return JsonResponse({'status': 'error', 'message': 'Нет валидных ID паспортов'}, status=400)
+
+            # Получаем паспорта для удаления
+            passports = EquipmentPassport.objects.filter(id__in=valid_ids)
+
+            # Удаляем файлы
+            file_success, file_errors = delete_multiple_passport_files(valid_ids)
+
+            # Удаляем записи из БД
+            db_count = passports.count()
+            passports.delete()
+
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Удалено {db_count} паспортов из БД и {file_success} файлов',
+                'db_deleted': db_count,
+                'files_deleted': file_success,
+                'file_errors': file_errors
+            })
+
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Неверный формат JSON'}, status=400)
+
+    return JsonResponse({'status': 'error', 'message': 'Метод не разрешен'}, status=405)
 
 
 @login_required
@@ -319,14 +371,36 @@ def maintenance_work_list(request, pk):
     start_date = request.GET.get('start_date')
     end_date = request.GET.get('end_date')
     if start_date:
-        works = works.filter(work_date__gte=parse_date(start_date))
+        try:
+            works = works.filter(work_date__gte=parse_date(start_date))
+        except (ValueError, TypeError):
+            pass
     if end_date:
-        works = works.filter(work_date__lte=parse_date(end_date))
+        try:
+            works = works.filter(work_date__lte=parse_date(end_date))
+        except (ValueError, TypeError):
+            pass
 
     return render(request, 'passports/work_list.html', {
         'passport': passport,
         'works': works,
-        'work_types': MaintenanceWork.WORK_TYPES
+        'work_types': MaintenanceWork.WORK_TYPES,
+        'current_filters': request.GET.dict()
+    })
+
+
+@login_required
+def passport_history(request, pk):
+    passport = get_object_or_404(EquipmentPassport, pk=pk)
+
+    if not (request.user.is_superuser or request.user.is_staff or passport.created_by == request.user):
+        return HttpResponseForbidden("У вас нет прав для просмотра истории")
+
+    history = get_passport_history(passport.id)
+
+    return render(request, 'passports/passport_history.html', {
+        'passport': passport,
+        'history': history
     })
 
 

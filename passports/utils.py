@@ -1,6 +1,7 @@
 import json
 import yaml
 import os
+import shutil
 from django.conf import settings
 from datetime import datetime
 
@@ -45,6 +46,9 @@ def save_passport_to_file(passport_instance):
         }
         passport_data['maintenance_works'].append(work_data)
 
+    # Создаем директорию, если она не существует
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
     # Сохраняем в JSON
     with open(file_path, 'w', encoding='utf-8') as f:
         json.dump(passport_data, f, ensure_ascii=False, indent=2)
@@ -59,18 +63,49 @@ def load_passport_from_file(passport_id):
     if not os.path.exists(file_path):
         return None
 
-    with open(file_path, 'r', encoding='utf-8') as f:
-        return json.load(f)
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError):
+        return None
 
 
 def delete_passport_file(passport_id):
     """Удаляет файл паспорта"""
     file_path = os.path.join(settings.PASSPORTS_DIR, f"{passport_id}.json")
+    history_file = os.path.join(settings.PASSPORTS_DIR, f"{passport_id}_history.json")
+
+    deleted_files = 0
 
     if os.path.exists(file_path):
-        os.remove(file_path)
-        return True
-    return False
+        try:
+            os.remove(file_path)
+            deleted_files += 1
+        except OSError:
+            pass
+
+    if os.path.exists(history_file):
+        try:
+            os.remove(history_file)
+            deleted_files += 1
+        except OSError:
+            pass
+
+    return deleted_files > 0
+
+
+def delete_multiple_passport_files(passport_ids):
+    """Удаляет файлы нескольких паспортов"""
+    success_count = 0
+    error_count = 0
+
+    for passport_id in passport_ids:
+        if delete_passport_file(passport_id):
+            success_count += 1
+        else:
+            error_count += 1
+
+    return success_count, error_count
 
 
 def get_passport_history(passport_id):
@@ -78,8 +113,11 @@ def get_passport_history(passport_id):
     history_file = os.path.join(settings.PASSPORTS_DIR, f"{passport_id}_history.json")
 
     if os.path.exists(history_file):
-        with open(history_file, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        try:
+            with open(history_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            return []
     return []
 
 
@@ -96,6 +134,9 @@ def add_passport_history_entry(passport_instance, user, changed_fields):
     history = get_passport_history(passport_instance.id)
     history.append(history_entry)
 
+    # Создаем директорию, если она не существует
+    os.makedirs(os.path.dirname(history_file), exist_ok=True)
+
     with open(history_file, 'w', encoding='utf-8') as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
 
@@ -107,3 +148,61 @@ def get_changed_fields(initial_data, new_data):
         if initial_data[field] != new_data.get(field):
             changed_fields.append(field)
     return changed_fields
+
+
+def cleanup_orphaned_files():
+    """Очищает файлы, для которых нет соответствующих записей в базе данных"""
+    from .models import EquipmentPassport
+    import os
+
+    existing_passport_ids = set(str(passport.id) for passport in EquipmentPassport.objects.all())
+    files_in_directory = set()
+
+    if os.path.exists(settings.PASSPORTS_DIR):
+        for filename in os.listdir(settings.PASSPORTS_DIR):
+            if filename.endswith('.json'):
+                # Извлекаем UUID из имени файла
+                file_id = filename.split('.')[0]
+                if '_history' in file_id:
+                    file_id = file_id.replace('_history', '')
+                files_in_directory.add(file_id)
+
+    orphaned_files = files_in_directory - existing_passport_ids
+    deleted_count = 0
+
+    for orphan_id in orphaned_files:
+        if delete_passport_file(orphan_id):
+            deleted_count += 1
+
+    return deleted_count
+
+def add_passport_history_entry(passport_instance, user, changed_fields):
+    """Добавляет запись в историю изменений"""
+    history_file = os.path.join(settings.PASSPORTS_DIR, f"{passport_instance.id}_history.json")
+
+    # Преобразуем объекты date/datetime в строки
+    processed_changed_fields = {}
+    for field, changes in changed_fields.items():
+        processed_changes = {}
+        for key, value in changes.items():
+            if hasattr(value, 'isoformat'):
+                # Если это объект date или datetime, преобразуем в строку
+                processed_changes[key] = value.isoformat()
+            else:
+                processed_changes[key] = value
+        processed_changed_fields[field] = processed_changes
+
+    history_entry = {
+        'timestamp': datetime.now().isoformat(),
+        'user': user.username,
+        'changed_fields': processed_changed_fields
+    }
+
+    history = get_passport_history(passport_instance.id)
+    history.append(history_entry)
+
+    # Создаем директорию, если она не существует
+    os.makedirs(os.path.dirname(history_file), exist_ok=True)
+
+    with open(history_file, 'w', encoding='utf-8') as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
