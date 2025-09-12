@@ -21,8 +21,9 @@
 
 ## 📦 Установка и запуск
 Версия Python 3.13
+Версия PIP 25.1.1
 ### 1. Клонирование репозитория
-git clone <your-repo-url>
+git clone https://github.com/ShadowWEBRAS/Passport_project.git
 cd passport_project
 2. Создание виртуального окружения
 python -m venv venv
@@ -38,10 +39,10 @@ python manage.py migrate
 python manage.py createsuperuser
 6. Запуск сервера разработки
 python manage.py runserver
-Приложение будет доступно по адресу: http://localhost:8000
+Проект будет доступен по адресу: http://localhost:8000
 
 📁 Структура проекта
-text
+
 passport_project/
 ├── passports/          # Приложение для управления паспортами
 │   ├── models.py      # Модели данных
